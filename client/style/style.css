@@ -1,0 +1,314 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #11151c;
+  color: #f3f6fa;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* SPA View Switching */
+.spa-view {
+  display: none;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+}
+
+.spa-view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  z-index: 10;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid #2e3a4d;
+  background: #1d2633;
+  color: #f3f6fa;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+button:hover:not(:disabled) {
+  background: #273447;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  cursor: default;
+}
+
+/* Main Menu */
+#view-menu.active {
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-card {
+  width: 100%;
+  max-width: 440px;
+  background: #171e29;
+  border: 1px solid #283447;
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.brand {
+  margin: 0 0 24px;
+  font-size: 2.4rem;
+  letter-spacing: 0.14em;
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-actions button {
+  width: 100%;
+  padding: 15px 20px;
+  font-size: 1.1rem;
+}
+
+/* Standard Panels */
+.panel {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  background: #171e29;
+  border: 1px solid #283447;
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+#input-check-pad {
+  margin-top: 16px;
+  height: 320px;
+  border: 2px dashed #384963;
+  border-radius: 12px;
+  background: #121821;
+  touch-action: none;
+}
+
+/* Dashboard — 4-Corner 2v2 Stage */
+#view-dashboard.active {
+  padding: 12px 16px 16px;
+}
+
+#dashboard-stage {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid #263244;
+  border-radius: 14px;
+  background: #141b25;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Sized to fit 4 corners cleanly on a smart TV while keeping large touch targets */
+.player-slot {
+  position: absolute;
+  width: clamp(240px, 24vw, 340px);
+  height: clamp(270px, 29vw, 380px);
+  border-radius: 12px;
+  border: 2px solid #2f3e54;
+  background: #1b2432;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+/* Team A = Top corners (Blue), Team B = Bottom corners (Red) */
+.player-slot[data-team="A"] {
+  border-color: #3b82f6;
+}
+
+.player-slot[data-team="B"] {
+  border-color: #ef4444;
+}
+
+.player-slot[data-slot="top-left"] {
+  top: 16px;
+  left: 16px;
+}
+
+.player-slot[data-slot="top-right"] {
+  top: 16px;
+  right: 16px;
+}
+
+.player-slot[data-slot="bottom-left"] {
+  bottom: 16px;
+  left: 16px;
+}
+
+.player-slot[data-slot="bottom-right"] {
+  bottom: 16px;
+  right: 16px;
+}
+
+/* Drag Handle Header */
+.board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: #131a24;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.board-header:active {
+  cursor: grabbing;
+}
+
+.board-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-status {
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #233044;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+
+/* 3x3 Sliding Puzzle Grid */
+.puzzle-grid {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.puzzle-tile {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #3c506e;
+  background: #263449;
+  color: #f8fafc;
+  font-size: clamp(1.1rem, 2vw, 1.75rem);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.puzzle-tile.is-movable:not(:disabled) {
+  background: #2e4566;
+  border-color: #60a5fa;
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.35);
+}
+
+.puzzle-tile.is-movable:not(:disabled):active {
+  background: #3b5982;
+  transform: scale(0.96);
+}
+
+.puzzle-tile.is-empty {
+  background: #101620;
+  border: 1px dashed #253247;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.puzzle-tile:disabled:not(.is-empty) {
+  opacity: 0.85;
+}
+
+/* Center Control Hub */
+#center-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(17, 21, 28, 0.92);
+  border: 1px solid #2e3b4e;
+  border-radius: 12px;
+  z-index: 4;
+}
+
+/* Synced Countdown Overlay */
+#countdown-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 20, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+#countdown-overlay[hidden] {
+  display: none;
+}
+
+#countdown-value {
+  font-size: clamp(3.5rem, 10vw, 6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  text-align: center;
+  padding: 0 24px;
+}

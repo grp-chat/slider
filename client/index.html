@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Slider — Smart TV Sliding Puzzle</title>
+  <link rel="stylesheet" href="/style/style.css" />
+</head>
+<body>
+  <div id="app" data-view="menu">
+    <!-- Main Menu -->
+    <main id="view-menu" class="spa-view active" aria-label="Main Menu">
+      <div class="menu-card">
+        <h1 class="brand">SLIDER</h1>
+
+        <nav class="menu-actions" aria-label="Main Menu">
+          <button type="button" id="btn-add-players" data-target-view="players">Add Players</button>
+          <button type="button" id="btn-settings" data-target-view="settings">Settings</button>
+          <button type="button" id="btn-dashboard" data-target-view="dashboard">Dashboard</button>
+          <button type="button" id="btn-input-check" data-target-view="input-check">Input Check</button>
+          <button type="button" id="btn-control-panel" data-target-view="control-panel">Control Panel</button>
+        </nav>
+      </div>
+    </main>
+
+    <!-- 1. Add Players (No DB required; game can run without adding players) -->
+    <section id="view-players" class="spa-view" aria-label="Add Players">
+      <div class="view-header">
+        <button type="button" class="btn-back" data-target-view="menu">Main Menu</button>
+      </div>
+      <div class="panel">
+        <h2>Add Players</h2>
+        <p>Optional for now—you can jump straight to the Dashboard without adding players.</p>
+        <div id="players-list"></div>
+      </div>
+    </section>
+
+    <!-- 2. Settings (Placeholder for isolated game settings later) -->
+    <section id="view-settings" class="spa-view" aria-label="Settings">
+      <div class="view-header">
+        <button type="button" class="btn-back" data-target-view="menu">Main Menu</button>
+      </div>
+      <div class="panel">
+        <h2>Settings</h2>
+        <div id="settings-container"></div>
+      </div>
+    </section>
+
+    <!-- 3. Dashboard (Smart TV game stage: 2v2 corners, draggable boards later, fastest solve) -->
+    <section id="view-dashboard" class="spa-view" aria-label="Dashboard">
+      <div class="view-header">
+        <button type="button" class="btn-back" data-target-view="menu">Main Menu</button>
+      </div>
+
+      <div id="dashboard-stage">
+        <div class="player-slot" data-slot="top-left" data-team="A"></div>
+        <div class="player-slot" data-slot="top-right" data-team="A"></div>
+        <div class="player-slot" data-slot="bottom-left" data-team="B"></div>
+        <div class="player-slot" data-slot="bottom-right" data-team="B"></div>
+
+        <div id="center-hub">
+          <button type="button" id="btn-start-race">Start Race</button>
+          <button type="button" id="btn-reset-race">Reset</button>
+        </div>
+      </div>
+
+      <div id="countdown-overlay" hidden aria-live="assertive">
+        <div id="countdown-value">3</div>
+      </div>
+    </section>
+
+    <!-- 4. Input Check (Simultaneous multi-touch test for the smart TV) -->
+    <section id="view-input-check" class="spa-view" aria-label="Input Check">
+      <div class="view-header">
+        <button type="button" class="btn-back" data-target-view="menu">Main Menu</button>
+      </div>
+      <div class="panel">
+        <h2>Input Check</h2>
+        <p id="input-check-status">Test simultaneous touch inputs on the screen.</p>
+        <div id="input-check-pad"></div>
+      </div>
+    </section>
+
+    <!-- 5. Control Panel (Tablet side to trigger synced countdown on Dashboard) -->
+    <section id="view-control-panel" class="spa-view" aria-label="Control Panel">
+      <div class="view-header">
+        <button type="button" class="btn-back" data-target-view="menu">Main Menu</button>
+      </div>
+      <div class="panel">
+        <h2>Control Panel</h2>
+        <button type="button" id="btn-trigger-countdown">Start Race (Countdown)</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/multitouch.js"></script>
+  <script src="/js/input.js"></script>
+  <script src="/js/gridlock.js"></script>
+  <script src="/js/index.js"></script>
+</body>
+</html>
