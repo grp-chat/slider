@@ -11,6 +11,10 @@
   const BOARD_SCALE_MAX = 1.45;
   const BOARD_SCALE_STEP = 0.1;
 
+  const JUMBLE_FRAME_COUNT = 12;
+  const JUMBLE_FRAME_INTERVAL_MS = 338;
+  const TILE_GLIDE_DURATION_MS = 293;
+
   const state = {
     boardScale: 1,
     selectedImageIndex: 0, // 0..9 -> 1.jpg..10.jpg
@@ -167,13 +171,94 @@
     return tiles;
   }
 
-  function buildJumbleFrames(finalTiles, frameCount = 9) {
+  function buildJumbleFrames(finalTiles, frameCount = JUMBLE_FRAME_COUNT) {
     const frames = [];
     for (let i = 0; i < frameCount; i++) {
       frames.push(createSolvableBoard(18));
     }
     frames.push([...finalTiles]);
     return frames;
+  }
+
+  function getTeamGroupKey(board) {
+    const rawTeam = String(board.team || '').trim().toUpperCase();
+    if (rawTeam === 'A' || rawTeam === 'TEAM A') return 'A';
+    if (rawTeam === 'B' || rawTeam === 'TEAM B') return 'B';
+    if (rawTeam) return rawTeam;
+
+    const slot = String(board.slot || '').toLowerCase();
+    if (slot.includes('-a') || slot.startsWith('a')) return 'A';
+    if (slot.includes('-b') || slot.startsWith('b')) return 'B';
+    return board.slot || 'default';
+  }
+
+  function captureTileRects(board) {
+    const rects = new Map();
+    if (!board || !board.gridEl) return rects;
+
+    const tileEls = board.gridEl.querySelectorAll('.puzzle-tile[data-tile-num]');
+    tileEls.forEach((el) => {
+      const tileNum = el.dataset.tileNum;
+      if (!tileNum || tileNum === '0') return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        rects.set(tileNum, { left: r.left, top: r.top });
+      }
+    });
+
+    return rects;
+  }
+
+  function animateTileFlip(board, prevRects) {
+    if (!board || !board.gridEl || !prevRects || prevRects.size === 0) return;
+
+    const tileEls = board.gridEl.querySelectorAll('.puzzle-tile[data-tile-num]');
+    tileEls.forEach((el) => {
+      const tileNum = el.dataset.tileNum;
+      if (!tileNum || tileNum === '0') return;
+
+      const prev = prevRects.get(tileNum);
+      if (!prev) return;
+
+      const next = el.getBoundingClientRect();
+      const dx = prev.left - next.left;
+      const dy = prev.top - next.top;
+
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+
+      if (el._glideCleanupTimer) {
+        clearTimeout(el._glideCleanupTimer);
+        el._glideCleanupTimer = null;
+      }
+
+      el.classList.remove('is-tile-gliding');
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.classList.add('is-tile-gliding');
+          el.style.transition = `transform ${TILE_GLIDE_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+          el.style.transform = 'translate(0px, 0px)';
+
+          el._glideCleanupTimer = setTimeout(() => {
+            el.classList.remove('is-tile-gliding');
+            el.style.transition = '';
+            el.style.transform = '';
+            el._glideCleanupTimer = null;
+          }, TILE_GLIDE_DURATION_MS + 30);
+        });
+      });
+    });
+  }
+
+  function renderBoardWithFlip(board, mutateFn) {
+    const prevRects = captureTileRects(board);
+    if (typeof mutateFn === 'function') {
+      mutateFn();
+    }
+    renderBoard(board);
+    animateTileFlip(board, prevRects);
   }
 
   function applyBoardScale() {
@@ -464,6 +549,7 @@
           <div class="board-header" data-drag-handle="true" style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-shrink:0;">
             <span class="board-title">${slotName.replace('-', ' ').toUpperCase()} (${team})</span>
             <div style="display:flex;align-items:center;gap:6px;">
+              <span data-role="trophy" title="Finished!" style="display:none;font-size:15px;line-height:1;pointer-events:none;">🏆</span>
               <button type="button" data-role="toggle-numbers" style="padding:2px 8px;font-size:12px;border-radius:4px;border:1px solid #94a3b8;background:#fff;color:#000;cursor:pointer;">Hide #</button>
               <span class="board-status" data-role="status">Ready</span>
             </div>
@@ -477,6 +563,7 @@
           el: slotEl,
           gridEl: slotEl.querySelector('[data-role="grid"]'),
           statusEl: slotEl.querySelector('[data-role="status"]'),
+          trophyEl: slotEl.querySelector('[data-role="trophy"]'),
           toggleNumBtn: slotEl.querySelector('[data-role="toggle-numbers"]'),
           tiles: [...SOLVED_BOARD],
           showNumbers: true,
@@ -535,10 +622,14 @@
   }
 
   function renderBoard(board) {
-    const { gridEl, statusEl, tiles, finishedAt, showNumbers } = board;
+    const { gridEl, statusEl, trophyEl, tiles, finishedAt, showNumbers } = board;
     if (!gridEl) return;
 
     const isCompleted = finishedAt !== null;
+
+    if (trophyEl) {
+      trophyEl.style.display = isCompleted ? 'inline-block' : 'none';
+    }
 
     gridEl.style.display = 'grid';
     gridEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, minmax(0, 1fr))`;
@@ -556,13 +647,16 @@
 
       if (value === 0 && isCompleted) {
         // Reveal the 9th tile once this player finishes the puzzle
+        cell.dataset.tileNum = String(FINAL_TILE_NUMBER);
         appendTileSliceAndBadge(cell, FINAL_TILE_NUMBER, showNumbers);
         cell.disabled = true;
       } else if (value === 0) {
+        cell.dataset.tileNum = '0';
         cell.classList.add('is-empty');
         cell.disabled = true;
         cell.setAttribute('aria-label', 'Empty space');
       } else {
+        cell.dataset.tileNum = String(value);
         appendTileSliceAndBadge(cell, value, showNumbers);
         // Intentionally NO movable-tile highlight class (is-movable omitted)
         cell.disabled = state.phase !== 'racing' || isCompleted;
@@ -599,16 +693,22 @@
     const adjacent = getAdjacentIndices(emptyIdx);
     if (!adjacent.includes(tileIdx)) return;
 
-    [board.tiles[emptyIdx], board.tiles[tileIdx]] = [board.tiles[tileIdx], board.tiles[emptyIdx]];
-    board.moves += 1;
+    let completedNow = false;
 
-    if (isSolved(board.tiles)) {
-      board.finishedAt = performance.now();
-      if (!state.finishers.includes(board.slot)) {
-        state.finishers.push(board.slot);
+    renderBoardWithFlip(board, () => {
+      [board.tiles[emptyIdx], board.tiles[tileIdx]] = [board.tiles[tileIdx], board.tiles[emptyIdx]];
+      board.moves += 1;
+
+      if (isSolved(board.tiles)) {
+        board.finishedAt = performance.now();
+        if (!state.finishers.includes(board.slot)) {
+          state.finishers.push(board.slot);
+        }
+        completedNow = true;
       }
+    });
 
-      // Independent player finishes: each player finishes on their own while others keep racing
+    if (completedNow) {
       const allBoards = Object.values(state.boards);
       const allFinished = allBoards.length > 0 && allBoards.every((b) => b.finishedAt !== null);
 
@@ -616,14 +716,8 @@
         state.phase = 'finished';
         allBoards.forEach((b) => renderBoard(b));
         announceAllFinished(board);
-        return;
       }
-
-      renderBoard(board);
-      return;
     }
-
-    renderBoard(board);
   }
 
   function announceAllFinished(lastFinisherBoard) {
@@ -657,26 +751,35 @@
     state.raceStartTime = 0;
 
     const boardEntries = Object.values(state.boards);
+    const teamSequences = {};
+
     const sequences = boardEntries.map((board) => {
       board.moves = 0;
       board.finishedAt = null;
-      const finalTiles = createSolvableBoard(30);
+
+      const teamKey = getTeamGroupKey(board);
+      if (!teamSequences[teamKey]) {
+        const finalTiles = createSolvableBoard(30);
+        teamSequences[teamKey] = buildJumbleFrames(finalTiles, JUMBLE_FRAME_COUNT);
+      }
+
       return {
         board,
-        frames: buildJumbleFrames(finalTiles, 9)
+        frames: teamSequences[teamKey]
       };
     });
 
     boardEntries.forEach((b) => renderBoard(b));
 
     const totalFrames = sequences[0] ? sequences[0].frames.length : 1;
-    const frameIntervalMs = 50;
 
     let step = 0;
     const jumbleTimer = scheduleInterval(() => {
       sequences.forEach(({ board, frames }) => {
-        board.tiles = [...frames[Math.min(step, frames.length - 1)]];
-        renderBoard(board);
+        const nextTiles = [...frames[Math.min(step, frames.length - 1)]];
+        renderBoardWithFlip(board, () => {
+          board.tiles = nextTiles;
+        });
       });
 
       step += 1;
@@ -684,7 +787,7 @@
         clearInterval(jumbleTimer);
         startSyncedCountdown(seconds, overlay, countdownValue);
       }
-    }, frameIntervalMs);
+    }, JUMBLE_FRAME_INTERVAL_MS);
   }
 
   function startSyncedCountdown(seconds, overlay, countdownValue) {
@@ -732,10 +835,11 @@
 
     ensureBoardsMounted();
     Object.values(state.boards).forEach((board) => {
-      board.tiles = [...SOLVED_BOARD];
-      board.moves = 0;
-      board.finishedAt = null;
-      renderBoard(board);
+      renderBoardWithFlip(board, () => {
+        board.tiles = [...SOLVED_BOARD];
+        board.moves = 0;
+        board.finishedAt = null;
+      });
     });
   }
 
